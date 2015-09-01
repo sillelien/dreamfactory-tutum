@@ -74,8 +74,6 @@ mysql_slave:
   restart: always
   cpu_shares: 4096
   mem_limit: 1048m
-  volumes_from:
-    - dbvol
   tags:
     - mysql
     - dsp
