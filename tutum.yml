@@ -57,6 +57,7 @@ mysql:
     - dbvol
   tags:
     - mysql
+    - dsp
     - live
   environment:
     REPLICATION_MASTER: true
@@ -77,6 +78,7 @@ mysql_slave:
     - dbvol
   tags:
     - mysql
+    - dsp
     - live
   links:
     - mysql:mysql
@@ -91,6 +93,10 @@ mysql_slave:
 dbvol:
    image: ubuntu
    command: sleep 2147483647
+   tags:
+     - mysql
+     - dsp
+     - live   
    volumes:
       - /var/lib/mysql:/var/lib/mysql
 
