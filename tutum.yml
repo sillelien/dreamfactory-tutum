@@ -1,0 +1,73 @@
+tutum-cron:
+  image: vizzbuzz/tutum-cron
+  autorestart: always
+  cpu_shares: 128
+  mem_limit: 64m
+  tags:
+    - dsp
+    - live
+  roles:
+    - global
+  environment:
+    TEST_CRON_SCHEDULE: '0 * * * *'
+  links:
+    - backup
+
+backup:
+  image: sillelien/docker-mysql-backup
+  command: backup
+  tags:
+    - dsp
+    - live
+  links:
+    - mysql
+  environment:
+    AWS_ACCESS_KEY_ID: changeme
+    AWS_SECRET_ACCESS_KEY: changeme
+    AWS_DEFAULT_REGION: eu-west-1
+    S3_BUCKET: changeme
+    S3_PATH: mysql
+
+
+mysql:
+  image: tutum/mysql
+  ports:
+    - 3306:3306
+  restart: always
+  cpu_shares: 4096
+  mem_limit: 1048m
+  volumes_from:
+    - dbvol
+  tags:
+    - mysql
+    - live
+  environment:
+    ON_CREATE_DB: dsp
+    MYSQL_USER: dsp
+    MYSQL_PASS: changeme
+
+dbvol:
+   image: ubuntu
+   command: sleep 2147483647
+   volumes:
+      - /var/lib/mysql:/var/lib/mysql
+
+dsp:
+  target_num_containers: 1
+  restart: always
+  deployment_strategy: high_availability
+  cpu_shares: 2048
+  mem_limit: 512m
+  image: dreamfactorysoftware/dsp-docker
+  links:
+    - mysql:db
+  tags:
+    - dsp
+    - live
+  ports:
+    - 8080:80
+  environment:
+      DB_NAME: dsp
+      DB_USER: dsp
+      DB_PASS: changeme
+      SERVERNAME: localhost
