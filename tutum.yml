@@ -22,7 +22,7 @@ backup_hourly:
     - dsp
     - live
   links:
-    - mysql_slave
+    - mysql_slave:mysql
   environment:
     AWS_ACCESS_KEY_ID: id_change_me
     AWS_SECRET_ACCESS_KEY: "secret_change_me"
@@ -37,7 +37,7 @@ backup_daily:
     - dsp
     - live
   links:
-    - mysql_slave
+    - mysql_slave:mysql
   environment:
     AWS_ACCESS_KEY_ID: id_change_me
     AWS_SECRET_ACCESS_KEY: "secret_change_me"
@@ -85,7 +85,6 @@ mysql_slave:
   environment:
     REPLICATION_SLAVE: true
     REPLICATION_PASS: rep_pass_change_me
-    ON_CREATE_DB: dsp
     MYSQL_USER: dsp
     MYSQL_PASS: db_pass_change_me
 
