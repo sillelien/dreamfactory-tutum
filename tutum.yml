@@ -9,24 +9,41 @@ tutum-cron:
   roles:
     - global
   environment:
-    TEST_CRON_SCHEDULE: '0 * * * *'
+    BACKUP_HOURLY_CRON_SCHEDULE: '0 * * * *'
+    BACKUP_DAILY_CRON_SCHEDULE: '0 3 * * *'
   links:
-    - backup
+    - backup_hourly
+    - backup_daily
 
-backup:
+backup_hourly:
   image: sillelien/docker-mysql-backup
   command: backup
   tags:
     - dsp
     - live
   links:
-    - mysql
+    - mysql_slave
   environment:
-    AWS_ACCESS_KEY_ID: changeme
-    AWS_SECRET_ACCESS_KEY: changeme
+    AWS_ACCESS_KEY_ID: id_change_me
+    AWS_SECRET_ACCESS_KEY: "secret_change_me"
     AWS_DEFAULT_REGION: eu-west-1
-    S3_BUCKET: changeme
-    S3_PATH: mysql
+    S3_BUCKET: bucket_change_me
+    S3_PATH: hourly/dsp
+
+backup_daily:
+  image: sillelien/docker-mysql-backup
+  command: backup
+  tags:
+    - dsp
+    - live
+  links:
+    - mysql_slave
+  environment:
+    AWS_ACCESS_KEY_ID: id_change_me
+    AWS_SECRET_ACCESS_KEY: "secret_change_me"
+    AWS_DEFAULT_REGION: eu-west-1
+    S3_BUCKET: bucket_change_me
+    S3_PATH: daily/dsp
 
 
 mysql:
@@ -42,15 +59,41 @@ mysql:
     - mysql
     - live
   environment:
+    REPLICATION_MASTER: true
+    REPLICATION_PASS: rep_pass_change_me
     ON_CREATE_DB: dsp
     MYSQL_USER: dsp
-    MYSQL_PASS: changeme
+    MYSQL_PASS: db_pass_change_me
+    
+
+mysql_slave:
+  image: tutum/mysql
+  ports:
+    - 3307:3306
+  restart: always
+  cpu_shares: 4096
+  mem_limit: 1048m
+  volumes_from:
+    - dbvol
+  tags:
+    - mysql
+    - live
+  links:
+    - mysql:mysql
+  environment:
+    REPLICATION_SLAVE: true
+    REPLICATION_PASS: rep_pass_change_me
+    ON_CREATE_DB: dsp
+    MYSQL_USER: dsp
+    MYSQL_PASS: db_pass_change_me
+
 
 dbvol:
    image: ubuntu
    command: sleep 2147483647
    volumes:
       - /var/lib/mysql:/var/lib/mysql
+
 
 dsp:
   target_num_containers: 1
@@ -69,5 +112,52 @@ dsp:
   environment:
       DB_NAME: dsp
       DB_USER: dsp
-      DB_PASS: changeme
+      DB_PASS: db_pass_change_me
       SERVERNAME: localhost
+
+
+# authorizedkeys:
+#   image: tutum/authorizedkeys
+#   deployment_strategy: every_node
+#   autodestroy: always
+#   command: "bash -c /run.sh ; while true; do sleep 3600; done"
+#   environment:
+#     - AUTHORIZED_KEYS=ssh-rsa very_long_string_containing_public_key hello@neilellis.me
+#   volumes:
+#     - /root:/user:rw
+#   tags:
+#     - live
+#     - dsp
+
+
+# newrelic:
+#   tags:
+#     - live
+#     - dsp
+#   image: "tutum/newrelic-agent"
+#   restart: "on-failure"
+#   privileged: true
+#   volumes:
+#     - "/var/run/docker.sock:/var/run/docker.sock"
+#     - "/dev:/dev"
+#     - "/sys:/sys"
+#   environment:
+#     - "NEW_RELIC_LICENSE_KEY=new_relic_key"
+#     - "HOSTNAME=$TUTUM_NODE_HOSTNAME"
+#   deployment_strategy: every_node
+#   # net: host
+#   # pid: host
+
+
+# logs:
+#   cpu_shares: 256
+#   deployment_strategy: every_node
+#   volumes:
+#     - '/var/run/docker.sock:/tmp/docker.sock'
+#   image: gliderlabs/logspout
+#   command: syslog://logs123.papertrailapp.com:1234
+#   mem_limit: 128m
+#   restart: always
+#   tags:
+#     - live
+#     - dsp
